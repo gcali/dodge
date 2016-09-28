@@ -1,0 +1,63 @@
+#: import GamePanel gui.root.GamePanel
+
+<Ray>:
+    speed: 600
+    canvas:
+        Color:
+            rgb: 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+<Ball>:
+    speed_x: 300
+    speed_x_variance: 150
+    accel: -250
+    canvas:
+        Color:
+            rgb: 1, 1, 1
+        Ellipse:
+            pos: self.pos
+            size: self.size
+
+GamePanel:
+
+    player: player
+    visualizer: ray_visualizer
+    timer: timer
+    max_rays: 5
+    ray_timeout: ray_timeout
+
+    Label:
+        color: (1, 1, 0, 1)
+        text: str(int(root.remains_powered * 100)) if player.is_powered else ""
+        pos: (root.width - self.texture_size[0])/2, root.height - 100
+        font_size: 50
+
+    TimerVisualizer:
+        id: timer
+        pos: root.width, root.height
+
+    RayCountVisualizer:
+        id: ray_visualizer
+        height: 40
+        pos: 10, root.height - self.height - 10
+        how_many: root.left_rays
+
+    RayTimeout:
+        id: ray_timeout
+        height: 10
+        pos: ray_visualizer.x, ray_visualizer.y - self.height - 10
+        duration: 6
+
+    Player:
+        y: 10
+        id: player
+        max_speed: 600
+        accel: self.max_speed * 4
+        canvas:
+            Color:
+                rgb: self.rgb
+            Ellipse:
+                pos: self.pos
+                size: self.size
