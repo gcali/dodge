@@ -1,4 +1,4 @@
-#: import GamePanel gui.root.GamePanel
+#: import HELP_STRING gui.root.HELP_STRING
 
 <Ray>:
     speed: 600
@@ -27,6 +27,24 @@ GamePanel:
     timer: timer
     max_rays: 5
     ray_timeout: ray_timeout
+
+    on_help_toggle: self.remove_widget(help_label) if help_label in self.children else self.add_widget(help_label)
+
+    Label:
+        id: help_label
+        canvas.before:
+            Color:
+                rgba: 1, 1, 1, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        pos: (root.width - self.width)/2, (root.height - self.height)/2
+        color: 0, 0, 0, 1
+        font_size: 50
+        size: self.texture_size
+        valign: "middle"
+        text: HELP_STRING
+
 
     Label:
         color: (1, 1, 0, 1)

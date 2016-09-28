@@ -15,6 +15,18 @@ from kivy.uix.widget import Widget
 class RootApp(App):
     pass
 
+HELP_STRING = \
+"""Controls
+
+Left: move left
+Right: move right
+Down: SUPER power up
+Up: throw spear
+n: start new game
+h: toggle help
+Spacebar: toggle pause
+"""
+
 def clamp(n, min_n, max_n):
     return max(min(n, max_n), min_n)
 
@@ -292,6 +304,10 @@ class GamePanel(Widget):
         self._last_ray_time = 0
         self.remains_powered = self.powered_duration
         self.bind(add_ball_interval=self.update_remains_to_next_ball)
+        self.register_event_type('on_help_toggle')
+
+    def on_help_toggle(self, *args):
+        pass
 
     def update_remains_to_next_ball(self, *args):
         self._remains_to_next_ball = self.add_ball_interval
@@ -340,6 +356,8 @@ class GamePanel(Widget):
                 self.add_widget(self.player)
         elif keycode[1] == "n":
             self.new_level()
+        elif keycode[1] == "h":
+            self.dispatch("on_help_toggle")
 
     def new_level(self):
         self.left_rays = self.max_rays
