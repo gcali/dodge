@@ -270,6 +270,10 @@ class RayCountVisualizer(Widget):
 class GamePanel(Widget):
 
     pause = BooleanProperty(False)
+    forced_pause = BooleanProperty(False)
+    easy_mode = BooleanProperty(False)
+
+    fps = NumericProperty(30)
 
     should_add_ball = BooleanProperty(False)
     add_ball_interval = NumericProperty(2)
@@ -278,6 +282,7 @@ class GamePanel(Widget):
 
     powered_duration = NumericProperty(4)
     remains_powered = NumericProperty(0)
+    slow_factor = NumericProperty(.5)
 
     both_directions = BooleanProperty(False)
     rays = ListProperty()
@@ -294,7 +299,8 @@ class GamePanel(Widget):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        Clock.schedule_interval(self.update_state, 0.03)
+        self.event = Clock.schedule_interval(self.update_state, 1/max(1,self.fps))
+        self._last_fps = []
         self._keyboard = Window.request_keyboard(None, self)
         self._keyboard.bind(on_key_down=self.on_key_down)
         self._keyboard.bind(on_key_up=self.on_key_up)
@@ -305,6 +311,10 @@ class GamePanel(Widget):
         self.remains_powered = self.powered_duration
         self.bind(add_ball_interval=self.update_remains_to_next_ball)
         self.register_event_type('on_help_toggle')
+
+    def on_fps(self, *args):
+        if self.event is not None:
+            self.event.timeout = 1/max(1, self.fps)
 
     def on_help_toggle(self, *args):
         pass
@@ -333,6 +343,15 @@ class GamePanel(Widget):
     def on_key_up(self, keyboard, keycode, *args):
         if keycode[1] == "spacebar":
             self.pause = not self.pause
+        elif keycode[1] == "n":
+            self.new_level()
+        elif keycode[1] == "h":
+            self.dispatch("on_help_toggle")
+        elif keycode[1] == "a":
+            self.add_ball()
+        elif keycode[1] == "e":
+            self.easy_mode = not self.easy_mode
+            print(self.easy_mode)
         elif self.pause:
             pass
         elif keycode[1] == "right":
@@ -349,18 +368,14 @@ class GamePanel(Widget):
                 self.player.move_left = False
         elif keycode[1] == "up":
             self.add_ray()
-        elif keycode[1] == "a":
-            self.add_ball()
         elif keycode[1] == "p":
             if self.player not in self.children:
                 self.add_widget(self.player)
-        elif keycode[1] == "n":
-            self.new_level()
-        elif keycode[1] == "h":
-            self.dispatch("on_help_toggle")
 
     def new_level(self):
         self.left_rays = self.max_rays
+        self.forced_pause = False
+        self.pause = False
         if self.player not in self.children:
             self.add_widget(self.player)
         self.remove_balls()
@@ -395,12 +410,11 @@ class GamePanel(Widget):
             self.left_rays -= 1
 
     def add_ray(self):
-        if self.player in self.children and self.ray_timeout.is_timeout_over:
-            self.ray_timeout.reset_timeout()
+        if self.player in self.children and len(self.rays) < 1 and self.ray_timeout.is_timeout_over:
             ray = Ray(self.player.x + self.player.width/2, self.player.y + self.player.height)
             self.rays.append(ray)
             self.add_widget(ray)
-            #self.left_rays -= 1
+            self.ray_timeout.reset_timeout()
 
     def add_ball(self):
         ball = Ball(base_x=0, end_x=self.width,
@@ -424,9 +438,17 @@ class GamePanel(Widget):
     def on_powered_duration(self, *args):
         self.remains_powered = self.powered_duration
 
+    def check_fps(self, dt):
+        self._last_fps.append(dt)
+        if len(self._last_fps) > 10:
+            self._last_fps = self._last_fps[1:]
+
     def update_state(self, dt):
-        if self.pause:
+        self.check_fps(dt)
+        if self.pause or self.forced_pause:
             return
+        if self.easy_mode:
+            dt *= self.slow_factor
         if self.player is not None:
             self.update_player(dt)
         new_rays = []
@@ -473,8 +495,7 @@ class GamePanel(Widget):
                 collided = True
                 break
         if collided:
-            self.remove_widget(self.player)
-            self.remove_balls()
+            self.forced_pause = True
             self.timer.should_count = False
             self.should_add_ball = False
 
